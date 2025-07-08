@@ -30335,14 +30335,19 @@ async function runCommand(command, options = {}) {
     return { stdout: stdout.trim(), stderr: stderr.trim() };
 }
 
-async function generateChangesMessage(sourceRepoPath, currentTag) {
+async function generateChangesMessage(sourceRepoPath, targetRepoPath, currentTag, showAuthor) {
     core.info('Generating changes for commit message...');
-    process.chdir(sourceRepoPath);
 
+    // Find latest tag in the target repo to establish a range baseline.
+    process.chdir(targetRepoPath);
     const { stdout: latestTargetTag } = await runCommand('git describe --tags --abbrev=0', { ignoreReturnCode: true, silent: true });
+
+    // All log generation must happen in the source repo where all tags and commits exist.
+    process.chdir(sourceRepoPath);
 
     let tagRange = '';
     if (latestTargetTag) {
+        // Verify the baseline tag exists in the source repo.
         const { stdout: tagExistsInSource } = await runCommand(`git tag --list ${latestTargetTag}`);
         if (tagExistsInSource.trim() === latestTargetTag) {
             core.info(`Found latest target tag "${latestTargetTag}" in source. Creating log from that tag.`);
@@ -30356,29 +30361,17 @@ async function generateChangesMessage(sourceRepoPath, currentTag) {
         return stdout;
     }
 
-    const { stdout: hashes } = await runCommand(`git log --pretty=%H ${tagRange}`);
-    if (!hashes) {
+    // Now, run the log command in the source repo with the determined range.
+    const logFormat = showAuthor ? '--pretty=format:"* %s (by %an)"' : '--pretty=format:"* %s"';
+    const { stdout: messages } = await runCommand(`git log --no-merges ${logFormat} ${tagRange}`, { ignoreReturnCode: true });
+
+    if (!messages) {
         core.info('No new commits found in range. Using latest commit message.');
         const { stdout } = await runCommand(`git log -1 --pretty=%s ${currentTag}`);
         return stdout;
     }
 
-    const messages = [];
-    for (const hash of hashes.split('\n').filter(h => h)) {
-        const { stdout: parentCount } = await runCommand(`git rev-list --count -1 --parents ${hash}`);
-        const isMerge = parseInt(parentCount.split(' ')[0], 10) > 1;
-
-        if (isMerge) {
-            core.info(`Expanding messages from merge commit ${hash}`);
-            const { stdout: mergeMessages } = await runCommand(`git log --pretty=%s ${hash}^1..${hash}^2`);
-            messages.push(...mergeMessages.split('\n').filter(Boolean));
-        } else {
-            const { stdout: message } = await runCommand(`git log -1 --pretty=%s ${hash}`);
-            messages.push(message);
-        }
-    }
-
-    return messages.join('\n');
+    return messages;
 }
 
 async function run() {
@@ -30387,6 +30380,7 @@ async function run() {
         const syncListFile = core.getInput('sync_list', { required: true });
         const currentTag = core.getInput('tag', { required: true });
         const gitignoreFile = core.getInput('gitignore_file');
+        const showAuthor = core.getBooleanInput('show_author');
 
         const sourceRepoPath = process.cwd();
         const syncListPath = path.join(sourceRepoPath, syncListFile);
@@ -30415,7 +30409,7 @@ async function run() {
             await fse.remove(targetRepoPath);
             await runCommand(`git clone ${repoUrl} ${targetRepoPath}`);
 
-            const changes = await generateChangesMessage(targetRepoPath, currentTag);
+            const changes = await generateChangesMessage(sourceRepoPath, targetRepoPath, currentTag, showAuthor);
             core.setOutput('changes', changes);
             process.chdir(targetRepoPath);
 
