@@ -56,7 +56,7 @@ async function generateChangesMessage(sourceRepoPath, targetRepoPath, currentTag
     }
 
     // Now, run the log command in the source repo with the determined range.
-    const logFormat = showAuthor ? '--pretty=format:"* %s (by %an)"' : '--pretty=format:"* %s"';
+    const logFormat = showAuthor ? '--pretty=format:"* %s (%an)"' : '--pretty=format:"* %s"';
     const { stdout: messages } = await runCommand(`git log --no-merges ${logFormat} ${tagRange}`, { ignoreReturnCode: true });
 
     if (!messages) {
