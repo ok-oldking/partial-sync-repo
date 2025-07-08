@@ -13,6 +13,9 @@ inputs:
   tag:
     description: 'The Git tag in the source repository that triggers the sync. The action will sync the state of this tag.'
     required: true
+  gitignore_file:
+    description: 'a special git ignore file to be renamed to .gitignore in the target repo.'
+    required: false
 
 outputs:
   changes:
