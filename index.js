@@ -102,9 +102,9 @@ async function run() {
             await runCommand(`git clone ${repoUrl} ${targetRepoPath}`);
 
             const { messages: changes, startTag } = await generateChangesMessage(sourceRepoPath, targetRepoPath, currentTag, showAuthor);
-            const changes_with_aterisk = changes.split('\n').filter(line => line).map(line => `* ${line}`).join('\n');
+            const changes_with_asterisk = changes.split('\n').filter(line => line).map(line => `* ${line}`).join('\n');
             core.setOutput('changes', changes);
-            core.setOutput('changes_with_aterisk', changes_with_aterisk);
+            core.setOutput('changes_with_asterisk', changes_with_asterisk);
             core.setOutput('start_tag', startTag);
             process.chdir(targetRepoPath);
 
