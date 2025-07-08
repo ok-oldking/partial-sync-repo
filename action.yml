@@ -1,0 +1,27 @@
+# action.yml
+name: 'Partial Repo Sync Action'
+description: 'Syncs a specified subset of files and Git state (tags, commits) from a source repo to one or more target repos based on a Git tag.'
+author: 'ok-oldking'
+
+inputs:
+  repos:
+    description: 'A multiline list of target repository URLs to sync to.'
+    required: true
+  sync_list:
+    description: 'Path to a file in the source repository that lists files and directories to sync, one per line.'
+    required: true
+  tag:
+    description: 'The Git tag in the source repository that triggers the sync. The action will sync the state of this tag.'
+    required: true
+
+outputs:
+  changes:
+    description: 'The generated commit message containing the summary of changes since the last synced tag.'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
+
+branding:
+  icon: 'git-merge'
+  color: 'blue'
