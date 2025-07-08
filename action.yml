@@ -19,6 +19,7 @@ inputs:
   show_author:
     description: 'show author in the combined commit messages, default to true.'
     required: false
+    default: 'true'
 
 outputs:
   changes:
