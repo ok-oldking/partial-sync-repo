@@ -32,40 +32,32 @@ async function runCommand(command, options = {}) {
 async function generateChangesMessage(sourceRepoPath, targetRepoPath, currentTag, showAuthor) {
     core.info('Generating changes for commit message...');
 
-    // Find latest tag in the target repo to establish a range baseline.
     process.chdir(targetRepoPath);
     const { stdout: latestTargetTag } = await runCommand('git describe --tags --abbrev=0', { ignoreReturnCode: true, silent: true });
-
-    // All log generation must happen in the source repo where all tags and commits exist.
     process.chdir(sourceRepoPath);
 
-    let tagRange = '';
+    let startTag = '';
+    let messages = '';
+
     if (latestTargetTag) {
-        // Verify the baseline tag exists in the source repo.
         const { stdout: tagExistsInSource } = await runCommand(`git tag --list ${latestTargetTag}`);
         if (tagExistsInSource.trim() === latestTargetTag) {
             core.info(`Found latest target tag "${latestTargetTag}" in source. Creating log from that tag.`);
-            tagRange = `${latestTargetTag}..${currentTag}`;
+            startTag = latestTargetTag;
+            const tagRange = `${startTag}..${currentTag}`;
+            const logFormat = showAuthor ? '--pretty=format:"* %s (%an)"' : '--pretty=format:"* %s"';
+            const { stdout } = await runCommand(`git log --no-merges ${logFormat} ${tagRange}`, { ignoreReturnCode: true });
+            messages = stdout;
         }
     }
 
-    if (!tagRange) {
-        core.info('Could not find a common tag. Using latest commit message from source.');
-        const { stdout } = await runCommand(`git log -1 --pretty=%s ${currentTag}`);
-        return stdout;
-    }
-
-    // Now, run the log command in the source repo with the determined range.
-    const logFormat = showAuthor ? '--pretty=format:"* %s (%an)"' : '--pretty=format:"* %s"';
-    const { stdout: messages } = await runCommand(`git log --no-merges ${logFormat} ${tagRange}`, { ignoreReturnCode: true });
-
     if (!messages) {
-        core.info('No new commits found in range. Using latest commit message.');
+        core.info('Could not find a common tag or no new commits in range. Using latest commit message.');
         const { stdout } = await runCommand(`git log -1 --pretty=%s ${currentTag}`);
-        return stdout;
+        return { messages: stdout, startTag: '' };
     }
 
-    return messages;
+    return { messages, startTag };
 }
 
 async function run() {
@@ -75,6 +67,9 @@ async function run() {
         const currentTag = core.getInput('tag', { required: true });
         const gitignoreFile = core.getInput('gitignore_file');
         const showAuthor = core.getBooleanInput('show_author');
+
+        core.setOutput('end_tag', currentTag);
+        core.setOutput('start_tag', '');
 
         const sourceRepoPath = process.cwd();
         const syncListPath = path.join(sourceRepoPath, syncListFile);
@@ -103,8 +98,9 @@ async function run() {
             await fse.remove(targetRepoPath);
             await runCommand(`git clone ${repoUrl} ${targetRepoPath}`);
 
-            const changes = await generateChangesMessage(sourceRepoPath, targetRepoPath, currentTag, showAuthor);
+            const { messages: changes, startTag } = await generateChangesMessage(sourceRepoPath, targetRepoPath, currentTag, showAuthor);
             core.setOutput('changes', changes);
+            core.setOutput('start_tag', startTag);
             process.chdir(targetRepoPath);
 
             core.info('Syncing files...');

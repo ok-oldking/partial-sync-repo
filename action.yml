@@ -22,6 +22,10 @@ inputs:
     default: 'true'
 
 outputs:
+  start_tag:
+    description: 'The changes's starting tag, exlusive.'
+  end_tag:
+    description: 'The changes's starting tag, inclusive.'
   changes:
     description: 'The generated commit message containing the summary of changes since the last synced tag.'
 
