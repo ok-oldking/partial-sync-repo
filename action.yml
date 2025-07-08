@@ -16,6 +16,9 @@ inputs:
   gitignore_file:
     description: 'a special git ignore file to be renamed to .gitignore in the target repo.'
     required: false
+  show_author:
+    description: 'show author in the combined commit messages, default to true.'
+    required: false
 
 outputs:
   changes:
