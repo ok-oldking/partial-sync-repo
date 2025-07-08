@@ -27645,6 +27645,7 @@ async function run() {
         const repoUrls = core.getMultilineInput('repos', { required: true });
         const syncListFile = core.getInput('sync_list', { required: true });
         const currentTag = core.getInput('tag', { required: true });
+        const gitignoreFile = core.getInput('gitignore_file');
 
         const sourceRepoPath = process.cwd();
         const syncListPath = path.join(sourceRepoPath, syncListFile);
@@ -27681,7 +27682,28 @@ async function run() {
             for (const item of filesToSync) {
                 const srcPath = path.join(sourceRepoPath, item);
                 const destPath = path.join(targetRepoPath, item);
-                await fse.copy(srcPath, destPath, { overwrite: true });
+
+                if (await fse.pathExists(srcPath)) {
+                    const stats = await fse.stat(srcPath);
+                    if (stats.isDirectory()) {
+                        await fse.remove(destPath);
+                    }
+                    await fse.copy(srcPath, destPath, { overwrite: true });
+                } else {
+                    core.info(`Source item '${item}' not found, ensuring it's removed from target.`);
+                    await fse.remove(destPath);
+                }
+            }
+
+            if (gitignoreFile) {
+                const gitignoreSourcePath = path.join(sourceRepoPath, gitignoreFile);
+                if (await fse.pathExists(gitignoreSourcePath)) {
+                    const gitignoreDestPath = path.join(targetRepoPath, '.gitignore');
+                    core.info(`Copying ${gitignoreFile} to ${gitignoreDestPath}`);
+                    await fse.copy(gitignoreSourcePath, gitignoreDestPath, { overwrite: true });
+                } else {
+                    core.warning(`Optional gitignore_file '${gitignoreFile}' not found. Skipping.`);
+                }
             }
 
             await runCommand('git add .');
