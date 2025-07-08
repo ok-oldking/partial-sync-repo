@@ -28,6 +28,9 @@ outputs:
     description: "The changes's starting tag, inclusive."
   changes:
     description: "The generated commit message containing the summary of changes since the last synced tag."
+  changes_with_aterisk:
+    description: "The generated commit message containing the summary of changes since the last synced tag, with an * in front of each line for mark down"
+  
 
 runs:
   using: 'node20'

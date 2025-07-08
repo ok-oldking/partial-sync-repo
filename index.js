@@ -45,7 +45,7 @@ async function generateChangesMessage(sourceRepoPath, targetRepoPath, currentTag
             core.info(`Found latest target tag "${latestTargetTag}" in source. Creating log from that tag.`);
             startTag = latestTargetTag;
             const tagRange = `${startTag}..${currentTag}`;
-            const logFormat = showAuthor ? '--pretty=format:"* %s (%an)"' : '--pretty=format:"* %s"';
+            const logFormat = showAuthor ? '--pretty=format:"%s (%an)"' : '--pretty=format:"%s"';
             const { stdout } = await runCommand(`git log --no-merges ${logFormat} ${tagRange}`, { ignoreReturnCode: true });
             messages = stdout;
         }
@@ -102,7 +102,9 @@ async function run() {
             await runCommand(`git clone ${repoUrl} ${targetRepoPath}`);
 
             const { messages: changes, startTag } = await generateChangesMessage(sourceRepoPath, targetRepoPath, currentTag, showAuthor);
+            const changes_with_aterisk = changes.split('\n').filter(line => line).map(line => `* ${line}`).join('\n');
             core.setOutput('changes', changes);
+            core.setOutput('changes_with_aterisk', changes_with_aterisk);
             core.setOutput('start_tag', startTag);
             process.chdir(targetRepoPath);
 
