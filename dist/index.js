@@ -30446,6 +30446,7 @@ async function run() {
             const commitResult = await runCommand(`git commit -m "${changes}"`, { ignoreReturnCode: true });
             if (commitResult.stdout.includes('nothing to commit') || commitResult.stderr.includes('nothing to commit')) {
                 core.info('No file changes to commit.');
+                return
             } else {
                 core.info('Changes committed.');
             }
