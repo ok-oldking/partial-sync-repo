@@ -59,6 +59,7 @@ async function generateChangesMessage(sourceRepoPath, targetRepoPath, currentTag
 
     const uniqueLines = [...new Set(messages.split('\n'))];
     messages = uniqueLines.join('\n');
+    messages = messages.replaceAll('"', '');
 
     return { messages, startTag };
 }
