@@ -141,7 +141,8 @@ async function run() {
             const commitResult = await runCommand(`git commit -m "${changes}"`, { ignoreReturnCode: true });
             if (commitResult.stdout.includes('nothing to commit') || commitResult.stderr.includes('nothing to commit')) {
                 core.info('No file changes to commit.');
-                return
+                process.chdir(sourceRepoPath);
+                continue;
             } else {
                 core.info('Changes committed.');
             }
@@ -171,6 +172,8 @@ async function run() {
             core.info(`Pushing branch "${mainBranch}" and all tags...`);
             await runCommand(`git push origin ${mainBranch} --force`);
             await runCommand('git push origin --tags --force');
+
+            process.chdir(sourceRepoPath);
         }
 
         core.info('\nOperation completed successfully for all repositories.');
