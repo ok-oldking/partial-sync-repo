@@ -72,6 +72,24 @@ async function run() {
         const gitignoreFile = core.getInput('gitignore_file');
         const showAuthor = core.getBooleanInput('show_author');
 
+        // ============================================================
+        // FIX: Configure Git to resolve Schannel/TLS connection errors
+        // ============================================================
+        core.info('Applying Git network configurations to fix Schannel errors...');
+        try {
+            // Switch from native Windows Schannel to OpenSSL
+            await runCommand('git config --global http.sslBackend openssl');
+            // Force HTTP/1.1 (HTTP/2 often causes abrupt closes on some git servers)
+            await runCommand('git config --global http.version HTTP/1.1');
+            // Increase buffer size to handle large chunks/slow connections
+            await runCommand('git config --global http.postBuffer 524288000');
+            // Optional: Disable SSL verification if the server certificate is invalid (Use with caution)
+            // await runCommand('git config --global http.sslVerify false'); 
+        } catch (configError) {
+            core.warning(`Warning: Failed to apply some Git network configs: ${configError.message}`);
+        }
+        // ============================================================
+
         core.setOutput('end_tag', currentTag);
         core.setOutput('start_tag', '');
 
@@ -99,7 +117,11 @@ async function run() {
             const targetRepoPath = path.join(sourceRepoPath, '..', `target_${repoName}`);
 
             core.info(`\n--- Processing repository: ${repoUrl} ---`);
+
+            // Ensure clean slate
             await fse.remove(targetRepoPath);
+
+            // Retry logic could be added here, but the global config fix usually solves it
             await runCommand(`git clone ${repoUrl} ${targetRepoPath}`);
 
             const { messages: changes, startTag } = await generateChangesMessage(sourceRepoPath, targetRepoPath, currentTag, showAuthor);
