@@ -28384,6 +28384,21 @@ exports.fromPromise = function (fn) {
 
 /***/ }),
 
+/***/ 7084:
+/***/ ((module) => {
+
+function parseSyncList(content) {
+    return content
+        .split(/\r?\n|\r/)
+        .map(line => line.trim())
+        .filter(Boolean);
+}
+
+module.exports = { parseSyncList };
+
+
+/***/ }),
+
 /***/ 2613:
 /***/ ((module) => {
 
@@ -30309,6 +30324,7 @@ const core = __nccwpck_require__(9999);
 const exec = __nccwpck_require__(8872);
 const fse = __nccwpck_require__(1977);
 const path = __nccwpck_require__(6928);
+const { parseSyncList } = __nccwpck_require__(7084);
 
 async function runCommand(command, options = {}) {
     let stdout = '';
@@ -30405,7 +30421,7 @@ async function run() {
         if (!fse.existsSync(syncListPath)) {
             throw new Error(`Sync list file not found at: ${syncListPath}`);
         }
-        const filesToSync = fse.readFileSync(syncListPath, 'utf8').split('\n').filter(line => line.trim() !== '');
+        const filesToSync = parseSyncList(fse.readFileSync(syncListPath, 'utf8'));
 
         core.info(`Source Repo Path: ${sourceRepoPath}`);
         core.info(`Syncing tag: ${currentTag}`);
@@ -30512,6 +30528,7 @@ async function run() {
 }
 
 run();
+
 module.exports = __webpack_exports__;
 /******/ })()
 ;

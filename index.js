@@ -3,6 +3,7 @@ const core = require('@actions/core');
 const exec = require('@actions/exec');
 const fse = require('fs-extra');
 const path = require('path');
+const { parseSyncList } = require('./sync-list');
 
 async function runCommand(command, options = {}) {
     let stdout = '';
@@ -99,7 +100,7 @@ async function run() {
         if (!fse.existsSync(syncListPath)) {
             throw new Error(`Sync list file not found at: ${syncListPath}`);
         }
-        const filesToSync = fse.readFileSync(syncListPath, 'utf8').split('\n').filter(line => line.trim() !== '');
+        const filesToSync = parseSyncList(fse.readFileSync(syncListPath, 'utf8'));
 
         core.info(`Source Repo Path: ${sourceRepoPath}`);
         core.info(`Syncing tag: ${currentTag}`);
